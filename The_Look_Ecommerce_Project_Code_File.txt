@@ -1,0 +1,105 @@
+# -*- coding: utf-8 -*-
+from google.colab import auth
+auth.authenticate_user()
+
+from google.cloud import bigquery
+client = bigquery.Client(project='redi-da25')
+
+sql_query = ('''
+
+SELECT p.*
+FROM redi-da25.the_look_ecommerce.products AS p
+LEFT JOIN redi-da25.the_look_ecommerce.order_items AS o
+ON p.id = o.product_id
+WHERE o.created_at IS NULL
+
+''')
+
+df = client.query(sql_query).to_dataframe()
+df
+
+"""### 2.- Find the 10 best selling products by sales
+Hint: You'll need to return the names of the products along with the 
+total sold in the correct order.
+"""
+
+sql_query = ('''SELECT p.name, COUNT(o.product_id) AS sold_count
+FROM redi-da25.the_look_ecommerce.products AS p
+LEFT JOIN redi-da25.the_look_ecommerce.order_items AS o
+ON p.id = o.product_id
+GROUP BY p.name
+ORDER BY sold_count DESC
+LIMIT 10 ''')
+
+
+df = client.query(sql_query).to_dataframe()
+df
+
+"""3.- Find the top distribution center
+Hint: most products are coming from this distribution center.
+
+"""
+
+Sql_query = ('''
+SELECT distribution_center_id, COUNT(id) AS top_products
+FROM redi-da25.the_look_ecommerce.products AS prod
+GROUP BY distribution_center_id
+ORDER BY top_products DESC
+LIMIT 1
+''')
+
+df = client.query(Sql_query).to_dataframe()
+df
+
+"""### 4. Find Top 3 Countries by amount of orders
+Hint: users from these countries place most of the orders.
+"""
+
+Sql_query = ('''
+SELECT u.country,COUNT(u.country) AS Top_most_Country
+FROM redi-da25.the_look_ecommerce.users AS u
+LEFT JOIN redi-da25.the_look_ecommerce.orders AS o
+ON u.id = o.user_id
+GROUP BY u.country
+ORDER BY Top_most_Country DESC
+LIMIT 3 ''')
+
+df = client.query(Sql_query).to_dataframe()
+df
+
+"""### 5.- Total customers per country as well as totals per gender
+Hint: you will need to return all 3 totals per row: total_customers, 
+total_f, total_m.
+"""
+
+sql_query = ('''
+SELECT country, COUNT(id) AS total_customer,
+COUNT(CASE WHEN gender = 'M' THEN 1 END) AS total_m,
+COUNT(CASE WHEN gender = 'F' THEN 1 END) AS total_f,
+FROM redi-da25.the_look_ecommerce.users
+Group BY country ''')
+
+df = client.query(sql_query).to_dataframe()
+df
+
+"""### 6.- Bonus points: Find the top 5 distribution centers by sales 
+(excluding cancelled and returned items)
+Hint: You might need to join 3 tables.
+
+"""
+
+sql_query = ('''
+SELECT distribution_center_id AS top_distribution_center, COUNT(prod.id) 
+AS top_sales
+FROM redi-da25.the_look_ecommerce.products AS prod
+LEFT JOIN redi-da25.the_look_ecommerce.order_items AS ot
+ON prod.id = ot.product_id
+RIGHT JOIN redi-da25.the_look_ecommerce.orders AS o
+ON o.order_id = ot.order_id
+WHERE o.status <> "Cencelled" AND o.status <> "Returned"
+GROUP BY prod.distribution_center_id
+ORDER BY top_sales
+LIMIT 5 ''')
+
+df = client.query(sql_query).to_dataframe()
+df
